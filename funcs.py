@@ -3,7 +3,6 @@ import datetime
 import uuid
 import struct
 from StringIO import StringIO
-import xml.etree.cElementTree
 
 def initializeDB(conn):
   c = conn.cursor()
@@ -237,9 +236,8 @@ def parseImageHostResponse(response):
   if 'rsp' not in response or 'error_code' in response:
     return []
   
-  tree = xml.etree.cElementTree.fromstring(response)
-  original_image = tree.find("original_image").text
-  small_thumbnail = tree.find("small_thumbnail").text
+  original_image = response[(response.find("<original_image>") + 16):response.find("</original_image>")]
+  small_thumbnail = response[(response.find("<small_thumbnail>") + 17):response.find("</small_thumbnail>")]
   return [original_image, small_thumbnail]
 
 def havePostWithGUID(guid, conn):

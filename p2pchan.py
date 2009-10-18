@@ -15,12 +15,12 @@ import twisted
 from twisted.web import static, server, resource
 from twisted.internet import reactor
 
-conn = sqlite3.connect(os.path.join(sys.path[0], "posts.db"))
+conn = sqlite3.connect(os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "posts.db"))
 initializeDB(conn)
 
 class P2PChanWeb(resource.Resource):
   isLeaf = True
-  conn = sqlite3.connect(os.path.join(sys.path[0], "posts.db"))
+  conn = sqlite3.connect(os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "posts.db"))
   def render_GET(self, request):
     if getRequestPath(request).startswith('/manage'):
       return self.renderManage(request)
@@ -169,15 +169,15 @@ class P2PChan(object):
       self.kaishi.peers = [self.host + ':' + str(self.port)]
 
     self.kaishi.start()
-    self.kaishi.peerid = '127.0.0.1:44545' #LOCAL ONLY - REMOVE LATER
 
     print 'Now available on the P2PChan network.'
+    print 'Visit http://127.0.0.1:8080 to begin.'
     print 'There are currently ' + str(len(self.kaishi.peers)) + ' other users online.'
-
+    
   #==============================================================================
   # kaishi hooks
   def handleIncomingData(self, peerid, identifier, uid, message):
-    conn = sqlite3.connect(os.path.join(sys.path[0], "posts.db"))
+    conn = sqlite3.connect(os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "posts.db"))
     if identifier == 'POST':
       post = decodePostData(message)
       print 'got post:', post[0]
@@ -213,7 +213,7 @@ class P2PChan(object):
   #==============================================================================
 
   def havePostWithGUID(self, guid):
-    conn = sqlite3.connect(os.path.join(sys.path[0], "posts.db"))
+    conn = sqlite3.connect(os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "posts.db"))
     c = conn.cursor()
     c.execute('select count(*) from posts where guid = \'' + guid.replace("'", '&#39;') + '\'')
     for row in c:
@@ -230,7 +230,7 @@ if __name__=='__main__':
   root = resource.Resource()
   root.putChild("", P2PChanWeb())
   root.putChild("manage", P2PChanWeb())
-  root.putChild("css", static.File(os.path.join(sys.path[0], "css")))
+  root.putChild("css", static.File(os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "css")))
   site = server.Site(root)
   reactor.listenTCP(8080, site)
   reactor.run()

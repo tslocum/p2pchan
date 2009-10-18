@@ -183,12 +183,14 @@ class P2PChan(object):
       print 'got post:', post[0]
       if not self.havePostWithGUID(post[0]):
         c = conn.cursor()
-        c.execute("insert into posts values ('" + "', '".join(post) + "')")
-        conn.commit()
-        if post[1] != "" and post[5].lower() != 'sage':
-          c.execute("update posts set bumped = '" + str(timestamp()) + "' where guid = '" + post[1] + "'")
-          conn.commit()
-        c.close
+        c.execute('select count(*) from posts where timestamp = \'' + post[2] + '\' and file = \'' + post[8] + '\'')
+        for row in c:
+          if row[0] == 0:
+            c.execute("insert into posts values ('" + "', '".join(post) + "')")
+            conn.commit()
+            if post[1] != "" and post[5].lower() != 'sage':
+              c.execute("update posts set bumped = '" + str(timestamp()) + "' where guid = '" + post[1] + "'")
+              conn.commit()
     elif identifier == 'THREAD':
       print 'got thread:', message
       if self.havePostWithGUID(message):

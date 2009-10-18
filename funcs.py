@@ -2,6 +2,7 @@ import time
 import datetime
 import uuid
 import struct
+import re
 from StringIO import StringIO
 
 def initializeDB(conn):
@@ -179,6 +180,11 @@ def buildPost(post, numreplies=-1):
   POST_MESSAGE = 9
   html = ""
 
+
+  message = re.compile(r'&gt;&gt;([0-9A-Za-z]+)').sub('<a href="#' + r'\1' + '">&gt;&gt;' + r'\1' + '</a>', post[POST_MESSAGE])
+  message = re.compile(r'^&gt;(.*)$', re.MULTILINE).sub(r'<span class="unkfunc">&gt;\1</span>', message)
+  message = message.replace("\n", "<br>")
+
   if post[POST_PARENT] == "" and post[POST_FILE] != "":
     html += '<a target="_blank" href="' + post[POST_FILE] + '"><img src="' + post[POST_THUMB] + '" alt="' + post[POST_GUID] + '" class="thumb"></a>'
   else:
@@ -189,7 +195,7 @@ def buildPost(post, numreplies=-1):
       &#0168;
     </td>""" + \
     '<td class="reply" id="' + post[POST_GUID] + '">'
-  html += '<a name="' + post[POST_GUID] + '"></a>' + \
+  html += '<a name="' + post[POST_GUID][0:5] + '"></a>' + \
   '<label>'
   if post[POST_SUBJECT] != '':
     html += '<span class="filetitle">' + post[POST_SUBJECT] + '</span> '
@@ -206,14 +212,16 @@ def buildPost(post, numreplies=-1):
   formatTimestamp(post[POST_TIMESTAMP]) + \
   '</label> ' + \
   '<span class="reflink">' + \
-  '<a href="#' + post[POST_GUID] + '">ID:' + post[POST_GUID][0:5] + '</a> ' + \
+  '<a href="#' + post[POST_GUID][0:5] + '">ID:' + post[POST_GUID][0:5] + '</a> ' + \
   '</span>'
-  if post[POST_PARENT] == '' and numreplies > -1:
-    html += ' [<a href="/?res=' + post[POST_GUID] + '">Reply</a>]'
-  if post[POST_PARENT] != '' and post[POST_FILE] != '':
+  if post[POST_PARENT] == '':
+    html += ' [<a href="/manage?getthread=' + post[POST_GUID] + '" title="Refresh thread (find missed replies)">Refresh</a>]'
+    if numreplies > -1:
+      html += ' [<a href="/?res=' + post[POST_GUID] + '">Reply</a>]'
+  elif post[POST_FILE] != '':
     html += '<br>' + \
     '<a target="_blank" href="' + post[POST_FILE] + '"><img src="' + post[POST_THUMB] + '" alt="' + post[POST_GUID] + '" class="thumb"></a>'
-  html += '<blockquote>' + post[POST_MESSAGE] + '</blockquote>'
+  html += '<blockquote>' + message + '</blockquote>'
   if numreplies > 5:
     html += '<span class="omittedposts">' + str(numreplies - 5) + ' post'
     if numreplies > 6:

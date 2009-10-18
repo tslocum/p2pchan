@@ -119,7 +119,10 @@ class P2PChanWeb(resource.Resource):
     if 'getthread' in request.args:
       p2pchan.kaishi.sendData('THREAD', request.args['getthread'][0])
       text += 'Sent thread request. <a href="/?res=' + request.args['getthread'][0] + '">Go to thread</a>'
-
+    if 'fetchthreads' in request.args:
+      p2pchan.kaishi.sendData('THREADS', "")
+      text += 'Sent thread fetch request.'
+      
     if text == '':
       text += """<form action="/manage" method="get">
       <fieldset>
@@ -149,7 +152,10 @@ class P2PChanWeb(resource.Resource):
           text += '<br>' + missingthread + ' - <a href="/manage?getthread=' + missingthread + '">Request thread</a>'
       else:
         text += "If you receive a reply to a thread which you do not yet have, it will appear in this list."
-      text += '</fieldset>'
+      text += """<br><br>
+      Alternatively, you can send out a request for some of the latest threads which you have not yet received any replies for:<br>
+      <form action="/manage" method="get"><input type="submit" name="fetchthreads" value="Fetch Threads" class="managebutton"></form>
+      </fieldset>"""
     return renderManagePage(text)
 
 class P2PChan(object):
@@ -202,6 +208,15 @@ class P2PChan(object):
         c.execute('select * from posts where parent = \'' + message.replace("'", '&#39;') + '\'')
         for post in c:
           self.kaishi.sendData('POST', encodePostData(post), to=peerid, bounce=False)
+    elif identifier == 'THREADS':
+      c = conn.cursor()
+      c2 = conn.cursor()
+      c.execute('select * from posts where parent = \'\' order by bumped desc limit 50')
+      for post in c:
+        self.kaishi.sendData('POST', encodePostData(post), to=peerid, bounce=False)
+        c2.execute('select * from posts where parent = \'' + post[1] + '\'')
+        for reply in c2:
+          self.kaishi.sendData('POST', encodePostData(reply), to=peerid, bounce=False)
     conn.close
 
   def handleAddedPeer(self, peerid):

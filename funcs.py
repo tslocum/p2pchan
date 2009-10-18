@@ -21,12 +21,12 @@ def formatError(text):
 
 def timestamp(t=None):
   if not t:
-    t = datetime.datetime.now()
+    t = datetime.datetime.utcnow()
   return int(time.mktime(t.timetuple()))
 
 def formatDate(t=None):
   if not t:
-    t = datetime.datetime.now()
+    t = datetime.datetime.utcnow()
   return t.strftime("%y/%m/%d(%a)%H:%M:%S")
 
 def formatTimestamp(t):

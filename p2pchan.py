@@ -108,8 +108,7 @@ class P2PChanWeb(resource.Resource):
               
           text += replies + '<br clear="left"><hr>'
         
-    if text != "":
-      return renderPage(text, p2pchan, replyto)
+    return renderPage(text, p2pchan, replyto)
 
   def renderManage(self, request):
     global p2pchan
@@ -170,6 +169,7 @@ class P2PChan(object):
       self.kaishi.peers = [self.host + ':' + str(self.port)]
 
     self.kaishi.start()
+    self.kaishi.peerid = '127.0.0.1:44545' #LOCAL ONLY - REMOVE LATER
 
     print 'Now available on the P2PChan network.'
     print 'There are currently ' + str(len(self.kaishi.peers)) + ' other users online.'

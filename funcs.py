@@ -193,7 +193,8 @@ def buildPost(post, conn, numreplies=-1):
     if row[0] > 0:
       return ""
 
-  message = re.compile(r'&gt;&gt;([0-9A-Za-z]+)').sub('<a href="#' + r'\1' + '">&gt;&gt;' + r'\1' + '</a>', post[POST_MESSAGE])
+  message = re.compile(r'&gt;&gt;&gt;([0-9A-Za-z]{8}-[0-9A-Za-z]{4}-[0-9A-Za-z]{4}-[0-9A-Za-z]{4}-[0-9A-Za-z]{12})').sub('<a href="/?res=' + r'\1' + '">&gt;&gt;&gt;&shy;' + r'\1' + '</a>', post[POST_MESSAGE])
+  message = re.compile(r'&gt;&gt;([0-9A-Za-z]{5})').sub('<a href="#' + r'\1' + '">&gt;&gt;' + r'\1' + '</a>', message)
   message = re.compile(r'^&gt;(.*)$', re.MULTILINE).sub(r'<span class="unkfunc">&gt;\1</span>', message)
   message = message.replace("\n", "<br>")
 

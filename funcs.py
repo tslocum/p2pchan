@@ -29,7 +29,14 @@ def formatError(text):
 
 def timestamp(t=None):
   x = ntplib.NTPClient()
-  return int(x.request('europe.pool.ntp.org').tx_time)
+  try: # try three times
+    timestamp = x.request('europe.pool.ntp.org').tx_time
+  except:
+    try:
+      timestamp = x.request('europe.pool.ntp.org').tx_time
+    except:
+      timestamp = x.request('europe.pool.ntp.org').tx_time
+  return int(timestamp)
 
 def formatDate(t=None):
   if not t:

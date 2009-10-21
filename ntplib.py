@@ -171,7 +171,7 @@ class NTPClient(object):
         interval"""
         # create the socket - let the application handle (unlikely) exceptions
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.settimeout(5)
+        s.settimeout(15)
         
         try:
             # lookup server address

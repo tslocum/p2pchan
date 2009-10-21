@@ -245,7 +245,7 @@ class P2PChan(object):
       c.execute('select * from posts where parent = \'\' order by bumped desc limit 50')
       for post in c:
         self.kaishi.sendData('POST', encodePostData(post), to=peerid, bounce=False)
-        c2.execute('select * from posts where parent = \'' + post[1] + '\'')
+        c2.execute('select * from posts where parent = \'' + post[0] + '\'')
         for reply in c2:
           self.kaishi.sendData('POST', encodePostData(reply), to=peerid, bounce=False)
     conn.close

@@ -15,12 +15,9 @@ import twisted
 from twisted.web import static, server, resource
 from twisted.internet import reactor
 
-conn = sqlite3.connect(os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "posts.db"))
-initializeDB(conn)
-
 class P2PChanWeb(resource.Resource):
   isLeaf = True
-  conn = sqlite3.connect(os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "posts.db"))
+  conn = sqlite3.connect(localFile('posts.db'))
   def render_GET(self, request):
     if getRequestPath(request).startswith('/manage'):
       return self.renderManage(request)
@@ -38,6 +35,7 @@ class P2PChanWeb(resource.Resource):
     replyto = False
     c = self.conn.cursor()
     c2 = self.conn.cursor()
+    c3 = self.conn.cursor()
     request_path = getRequestPath(request)
     text = ""
     if 'message' in request.args:
@@ -87,26 +85,29 @@ class P2PChanWeb(resource.Resource):
         replyto = request.args['res'][0]
         c.execute('select * from posts where guid = \'' + request.args['res'][0] + '\' limit 1')
         for post in c:
-          text += buildPost(post)
+          text += buildPost(post, self.conn)
         c.execute('select * from posts where parent = \'' + request.args['res'][0] + '\' order by timestamp asc')
         for post in c:
-          text += buildPost(post)
+          text += buildPost(post, self.conn)
       else:
         c.execute('select * from posts where parent = \'\' order by bumped desc')
         for post in c:
-          c2.execute('select count(*) from posts where parent = \'' + post[0] + '\'')
+          c2.execute('select count(*) from hiddenposts where guid = \'' + post[0] + '\'')
           for row in c2:
-            numreplies = row[0]
-            
-          text += buildPost(post, numreplies)
+            if row[0] == 0:
+              c3.execute('select count(*) from posts where parent = \'' + post[0] + '\'')
+              for row in c3:
+                numreplies = row[0]
+                
+              text += buildPost(post, self.conn, numreplies)
 
-          replies = ''
-          if numreplies > 0:
-            c2.execute('select * from posts where parent = \'' + post[0] + '\' order by timestamp desc limit 5')
-            for reply in c2:
-              replies = buildPost(reply) + replies
-              
-          text += replies + '<br clear="left"><hr>'
+              replies = ''
+              if numreplies > 0:
+                c3.execute('select * from posts where parent = \'' + post[0] + '\' order by timestamp desc limit 5')
+                for reply in c3:
+                  replies = buildPost(reply, self.conn) + replies
+                  
+              text += replies + '<br clear="left"><hr>'
         
     return renderPage(text, p2pchan, replyto)
 
@@ -119,9 +120,24 @@ class P2PChanWeb(resource.Resource):
     if 'getthread' in request.args:
       p2pchan.kaishi.sendData('THREAD', request.args['getthread'][0])
       text += 'Sent thread request. <a href="/?res=' + request.args['getthread'][0] + '">Go to thread</a>'
-    if 'fetchthreads' in request.args:
+    elif 'fetchthreads' in request.args:
       p2pchan.kaishi.sendData('THREADS', "")
       text += 'Sent thread fetch request.'
+    elif 'hide' in request.args:
+      if not os.path.isfile(localFile('servermode')):
+        c = self.conn.cursor()
+        c.execute('select count(*) from hiddenposts where guid = \'' + request.args['hide'][0] + '\'')
+        for row in c:
+          if row[0] == 0:
+            c.execute('insert into hiddenposts values (\'' + request.args['hide'][0] + '\')')
+            self.conn.commit()
+            text += 'Post hidden.'
+          else:
+            text += 'That post has already been hidden.'
+    elif 'unhide' in request.args:
+      c = self.conn.cursor()
+      c.execute('delete from hiddenposts where guid = \'' + request.args['unhide'][0] + '\'')
+      self.conn.commit()
       
     if text == '':
       text += """<form action="/manage" method="get">
@@ -133,6 +149,21 @@ class P2PChanWeb(resource.Resource):
       <input type="submit" value="Fetch Thread" class="managebutton">
       </fieldset>
       </form>
+      <fieldset>
+      <legend>
+      Hidden Posts
+      </legend>"""
+      c.execute('select count(*) from hiddenposts')
+      for row in c:
+        if row[0] > 0:
+          c.execute('select * from hiddenposts order by guid asc')
+          text += 'Click a post\'s guid to unhide it:'
+          for row in c:
+            text += '<br><a href="/manage?unhide=' + row[0] + '">' + row[0] + '</a>'
+        else:
+          text += 'You are not hiding any posts.'
+      text += """
+      </fieldset>
       <fieldset>
       <legend>
       Fetch Missing Threads
@@ -183,7 +214,7 @@ class P2PChan(object):
   #==============================================================================
   # kaishi hooks
   def handleIncomingData(self, peerid, identifier, uid, message):
-    conn = sqlite3.connect(os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "posts.db"))
+    conn = sqlite3.connect(localFile('posts.db'))
     if identifier == 'POST':
       post = decodePostData(message)
       print 'got post:', post[0]
@@ -230,7 +261,7 @@ class P2PChan(object):
   #==============================================================================
 
   def havePostWithGUID(self, guid):
-    conn = sqlite3.connect(os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "posts.db"))
+    conn = sqlite3.connect(localFile('posts.db'))
     c = conn.cursor()
     c.execute('select count(*) from posts where guid = \'' + guid.replace("'", '&#39;') + '\'')
     for row in c:
@@ -241,13 +272,16 @@ class P2PChan(object):
     return False
 
 if __name__=='__main__':
+  conn = sqlite3.connect(localFile('posts.db'))
+  initializeDB(conn)
+
   p2pchan = P2PChan()
   p2pchan.kaishi.debug = True
 
   root = resource.Resource()
   root.putChild("", P2PChanWeb())
   root.putChild("manage", P2PChanWeb())
-  root.putChild("css", static.File(os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "css")))
+  root.putChild("css", static.File(localFile('css')))
   site = server.Site(root)
   reactor.listenTCP(8080, site)
   reactor.run()

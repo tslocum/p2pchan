@@ -1,3 +1,5 @@
+import sys
+import os
 import time
 import datetime
 import uuid
@@ -5,10 +7,16 @@ import struct
 import re
 from StringIO import StringIO
 
+import ntplib
+
 def initializeDB(conn):
   c = conn.cursor()
   try:
     c.execute("create table posts (guid text, parent text, timestamp text, bumped text, name text, email text, subject text, thumb text, file text, message text)")
+  except:
+    pass
+  try:
+    c.execute("create table hiddenposts (guid text)")
   except:
     pass
 
@@ -20,19 +28,15 @@ def formatError(text):
   return str('<body style="background-color: #fbb;"><div style="text-align: center;font-size: 3em;"><span style="padding: 5px;border-bottom: 1px solid #7A1818;border-right: 1px solid #7A1818;background-color: #fdd;color: #7A1818;">' + text + '</span></div></body>')
 
 def timestamp(t=None):
-  if not t:
-    t = datetime.datetime.utcnow()
-  return int(time.mktime(t.timetuple()))
+  x = ntplib.NTPClient()
+  return int(x.request('europe.pool.ntp.org').tx_time)
 
 def formatDate(t=None):
   if not t:
-    t = datetime.datetime.utcnow()
+    t = datetime.datetime.fromtimestamp(timestamp())
   return t.strftime("%y/%m/%d(%a)%H:%M:%S")
 
 def formatTimestamp(t):
-  """
-  Format a timestamp to a readable date
-  """
   return formatDate(datetime.datetime.fromtimestamp(int(t)))
 
 def timeTaken(time_start, time_finish):
@@ -128,8 +132,11 @@ def renderPage(text, p2pchan, replyto=False):
       </form>
     </div>
     <hr>
+    <form name="delform" action="/manage" method="get">
     """ + text + """
-    <br clear="left">
+    <table align="right"><tr><td nowrap align="right">
+    <input type="submit" value="Hide Checked Post" class="managebutton">
+    </td></tr></table>
     <div class="footer" style="clear: both;">
       - <a href="http://tj9991.github.com/p2pchan/">p2pchan</a> -
     </div>
@@ -167,7 +174,7 @@ def renderManagePage(text):
 </body>
 </html>""")
 
-def buildPost(post, numreplies=-1):
+def buildPost(post, conn, numreplies=-1):
   POST_GUID = 0
   POST_PARENT = 1
   POST_TIMESTAMP = 2
@@ -180,13 +187,18 @@ def buildPost(post, numreplies=-1):
   POST_MESSAGE = 9
   html = ""
 
+  c = conn.cursor()
+  c.execute('select count(*) from hiddenposts where guid = \'' + post[POST_GUID] + '\'')
+  for row in c:
+    if row[0] > 0:
+      return ""
 
   message = re.compile(r'&gt;&gt;([0-9A-Za-z]+)').sub('<a href="#' + r'\1' + '">&gt;&gt;' + r'\1' + '</a>', post[POST_MESSAGE])
   message = re.compile(r'^&gt;(.*)$', re.MULTILINE).sub(r'<span class="unkfunc">&gt;\1</span>', message)
   message = message.replace("\n", "<br>")
 
   if post[POST_PARENT] == "" and post[POST_FILE] != "":
-    html += '<a target="_blank" href="' + post[POST_FILE] + '"><img src="' + post[POST_THUMB] + '" alt="' + post[POST_GUID] + '" class="thumb"></a>'
+    html += '<a target="_blank" href="' + post[POST_FILE] + '"><img src="' + post[POST_THUMB] + '" width="90" height="90" alt="' + post[POST_GUID] + '" class="thumb"></a>'
   else:
     html += """<table>
     <tbody>
@@ -196,7 +208,7 @@ def buildPost(post, numreplies=-1):
     </td>""" + \
     '<td class="reply" id="' + post[POST_GUID] + '">'
   html += '<a name="' + post[POST_GUID][0:5] + '"></a>' + \
-  '<label>'
+  '<label><input type="checkbox" name="hide" value="' + post[POST_GUID] + '"> '
   if post[POST_SUBJECT] != '':
     html += '<span class="filetitle">' + post[POST_SUBJECT] + '</span> '
   html += '<span class="postername">'
@@ -220,7 +232,7 @@ def buildPost(post, numreplies=-1):
       html += ' [<a href="/?res=' + post[POST_GUID] + '">Reply</a>]'
   elif post[POST_FILE] != '':
     html += '<br>' + \
-    '<a target="_blank" href="' + post[POST_FILE] + '"><img src="' + post[POST_THUMB] + '" alt="' + post[POST_GUID] + '" class="thumb"></a>'
+    '<a target="_blank" href="' + post[POST_FILE] + '"><img src="' + post[POST_THUMB] + '" width="90" height="90" alt="' + post[POST_GUID] + '" class="thumb"></a>'
   html += '<blockquote>' + message + '</blockquote>'
   if numreplies > 5:
     html += '<span class="omittedposts">' + str(numreplies - 5) + ' post'
@@ -255,6 +267,9 @@ def havePostWithGUID(guid, conn):
     if row[0] > 0:
       return True
   return False
+
+def localFile(filename):
+  return os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), filename)
 
 def getImageInfo(data):
     data = str(data)

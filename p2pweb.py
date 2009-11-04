@@ -85,10 +85,10 @@ class P2PChanWeb(resource.Resource):
         replyto = request.args['res'][0]
         c.execute('select * from posts where guid = \'' + request.args['res'][0] + '\' limit 1')
         for post in c:
-          text += buildPost(post, self.conn)
+          text += buildPost(post, self.conn, -1)
         c.execute('select * from posts where parent = \'' + request.args['res'][0] + '\' order by timestamp asc')
         for post in c:
-          text += buildPost(post, self.conn)
+          text += buildPost(post, self.conn, -1)
       else:
         c.execute('select * from posts where parent = \'\' order by bumped desc')
         for post in c:
@@ -105,7 +105,7 @@ class P2PChanWeb(resource.Resource):
               if numreplies > 0:
                 c3.execute('select * from posts where parent = \'' + post[0] + '\' order by timestamp desc limit 5')
                 for reply in c3:
-                  replies = buildPost(reply, self.conn) + replies
+                  replies = buildPost(reply, self.conn, 0) + replies
                   
               text += replies + '<br clear="left"><hr>'
         
@@ -137,9 +137,13 @@ class P2PChanWeb(resource.Resource):
       c = self.conn.cursor()
       c.execute('delete from hiddenposts where guid = \'' + request.args['unhide'][0] + '\'')
       self.conn.commit()
+    elif 'peers' in request.args:
+      self.p2pchan.kaishi.fetchPeersFromProvider()
+      text += 'Refreshed peer provider.'
       
     if text == '':
-      text += """<form action="/manage" method="get">
+      text += """<table width="100%" border="0"><tr width="100%"><td width="50%">
+      <form action="/manage" method="get">
       <fieldset>
       <legend>
       Fetch Full Thread
@@ -185,5 +189,22 @@ class P2PChanWeb(resource.Resource):
       text += """<br><br>
       Alternatively, you can send out a request for some of the latest threads which you have not yet received any replies for:<br>
       <form action="/manage" method="get"><input type="submit" name="fetchthreads" value="Fetch Threads" class="managebutton"></form>
-      </fieldset>"""
+      </fieldset>
+      <fieldset>
+      <legend>
+      Refresh Peer Provider
+      </legend>
+      <form action="/manage" method="get"><input type="submit" name="peers" value="Refresh Peers" class="managebutton"></form>
+      </fieldset></td><td width="50%" valign="top">
+      <fieldset>
+      <legend>
+      Help
+      </legend>
+      <p>To fetch some of the latest posts so you don't have a blank board, click "Fetch Threads" to the left.</p>
+      <p>If you can not properly connect to any peers, or are connected but don't receive any posts from them, your computer or router may be blocking P2PChan's traffic. Try opening port 44545 on your router, or disabling your local firewall for P2PChan's process.</p>
+      <p>Use > to quote some text: <span class="unkfunc">&gt;you, sir, are and idiot :)</span></p>
+      <p>Use >> to reference another post in the same thread: <a href="#1a179">&gt;&gt;1a179</a></p>
+      <p>Use >>> to reference another thread: <a href="/?res=b02de651-c923-11de-b7eb-001d72ed9aa8">&gt;&gt;&gt;&shy;b02de651-c923-11de-b7eb-001d72ed9aa8</a></p>
+      </fieldset>
+      </td></tr></table>"""
     return renderManagePage(text)

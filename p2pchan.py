@@ -47,6 +47,7 @@ class P2PChan(object):
         for post in c:
           self.kaishi.sendData('POST', encodePostData(post), to=peerid, bounce=False)
     elif identifier == 'THREADS':
+      i = 0
       c = conn.cursor()
       c2 = conn.cursor()
       c.execute('select * from posts where parent = \'\' order by bumped desc limit 50')
@@ -55,19 +56,22 @@ class P2PChan(object):
         c2.execute('select * from posts where parent = \'' + post[0] + '\'')
         for reply in c2:
           self.kaishi.sendData('POST', encodePostData(reply), to=peerid, bounce=False)
+          i += 1
+        i += 1
+      logMessage(peerid + ' has requested to receive the latest threads.  Sent ' + str(i) + ' posts.')
     conn.close
 
   def handleAddedPeer(self, peerid):
     if peerid != self.kaishi.peerid:
-      print peerid + ' has joined the network.'
+      logMessage(peerid + ' has joined the network.')
 
   def handlePeerNickname(self, peerid, nick):
     pass
     
   def handleDroppedPeer(self, peerid):
-    print peerid + ' has dropped from the network.'
+    logMessage(peerid + ' has dropped from the network.')
   #==============================================================================
-
+    
   def havePostWithGUID(self, guid):
     conn = sqlite3.connect(localFile('posts.db'))
     c = conn.cursor()
@@ -80,11 +84,11 @@ class P2PChan(object):
     return False
 
   def terminate(self, dummy=None):
-    print 'Goodbye.'
+    logMessage('Goodbye.')
     self.kaishi.gracefulExit()
 
 if __name__=='__main__':
-  print 'Initializing...'
+  logMessage('Initializing...')
   conn = sqlite3.connect(localFile('posts.db'))
   initializeDB(conn)
 
@@ -101,16 +105,16 @@ if __name__=='__main__':
   except:
     pass
 
-  print 'Now available on the P2PChan network.'
-  print 'Please ensure UDP port 44545 is open.'
+  logMessage('Now available on the P2PChan network.')
+  logMessage('Please ensure UDP port 44545 is open.')
 
   if not os.path.isfile(localFile('nodemode')):
     from twisted.web import static, server, resource
     from twisted.internet import reactor
     from p2pweb import P2PChanWeb
 
-    print 'There are currently ' + str(len(p2pchan.kaishi.peers)) + ' other users online.'
-    print 'Visit http://127.0.0.1:8080 to begin.'
+    logMessage('There are currently ' + str(len(p2pchan.kaishi.peers)) + ' other users online.')
+    logMessage('Visit http://127.0.0.1:8080 to begin.')
     
     root = resource.Resource()
     root.putChild("", P2PChanWeb(p2pchan))
@@ -121,8 +125,8 @@ if __name__=='__main__':
     reactor.run()
   else:
     print '----------------------------------------'
-    print 'Notice: Running in node mode.'
-    print 'Notice: No web server has been started.'
+    logMessage('Notice: Running in node mode.')
+    logMessage('Notice: No web server has been started.')
     print '----------------------------------------'
 
     try:

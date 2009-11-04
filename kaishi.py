@@ -198,16 +198,16 @@ class kaishi(object):
     self.sendData('DROP', 'DROP')
 
   def pingAllPeers(self):
-    for peerid in self.peers:
-      if peerid in self.pings:
-        if time.time() - self.pings[peerid] >= 20:
-          self.dropPeer(peerid)
-          self.debugMessage('Dropping ' + self.getPeerNickname(peerid) + ' (no ping responses for 20 seconds)')
-      else:
-        self.pings.update({peerid: time.time()})
-      self.sendData('PING', 'PING', to=peerid, bounce=False)
-    time.sleep(15)
-    thread.start_new_thread(self.pingAllPeers, ())
+    while 1:
+      for peerid in self.peers:
+        if peerid in self.pings:
+          if time.time() - self.pings[peerid] >= 20:
+            self.dropPeer(peerid)
+            self.debugMessage('Dropping ' + self.getPeerNickname(peerid) + ' (no ping responses for 20 seconds)')
+        else:
+          self.pings.update({peerid: time.time()})
+        self.sendData('PING', 'PING', to=peerid, bounce=False)
+      time.sleep(15)
 
   def pingProvider(self):
     while 1:

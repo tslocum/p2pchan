@@ -11,7 +11,7 @@ class P2PChan(object):
     self.kaishi = kaishi()
     self.kaishi.port = kaishi_port
     self.kaishi.peerid = self.kaishi.host + ':' + str(kaishi_port)
-    self.kaishi.provider = 'http://p2p.paq.cc/provider.php' # kaishi chat provider
+    self.kaishi.provider = 'http://p2p.paq.cc/provider.php?port=' + str(kaishi_port) # kaishi chat provider
     self.kaishi.handleIncomingData = self.handleIncomingData
     self.kaishi.handleAddedPeer = self.handleAddedPeer
     self.kaishi.handlePeerNickname = self.handlePeerNickname

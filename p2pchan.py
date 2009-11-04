@@ -191,7 +191,7 @@ class P2PChanWeb(resource.Resource):
 
 class P2PChan(object):
   def __init__(self):
-    print 'Initializing kaishi peer-to-peer framework...'
+    print 'Initializing...'
 
     self.kaishi = kaishi()
     self.kaishi.provider = 'http://p2p.paq.cc/provider.php' # kaishi chat provider
@@ -208,6 +208,7 @@ class P2PChan(object):
     self.kaishi.start()
 
     print 'Now available on the P2PChan network.'
+    print 'Please ensure UDP port 44545 is open.'
     print 'Visit http://127.0.0.1:8080 to begin.'
     print 'There are currently ' + str(len(self.kaishi.peers)) + ' other users online.'
     
@@ -217,7 +218,6 @@ class P2PChan(object):
     conn = sqlite3.connect(localFile('posts.db'))
     if identifier == 'POST':
       post = decodePostData(message)
-      print 'got post:', post[0]
       if not self.havePostWithGUID(post[0]):
         c = conn.cursor()
         c.execute('select count(*) from posts where timestamp = \'' + post[2] + '\' and file = \'' + post[8] + '\'')
@@ -229,9 +229,7 @@ class P2PChan(object):
               c.execute("update posts set bumped = '" + str(timestamp()) + "' where guid = '" + post[1] + "'")
               conn.commit()
     elif identifier == 'THREAD':
-      print 'got thread:', message
       if self.havePostWithGUID(message):
-        print 'sending thread:', message
         c = conn.cursor()
         c.execute('select * from posts where guid = \'' + message.replace("'", '&#39;') + '\' limit 1')
         for post in c:
@@ -251,13 +249,14 @@ class P2PChan(object):
     conn.close
 
   def handleAddedPeer(self, peerid):
-    print peerid + ' has joined the network.'
+    if peerid != self.kaishi.peerid:
+      print peerid + ' has joined the network.'
 
   def handlePeerNickname(self, peerid, nick):
     pass
     
   def handleDroppedPeer(self, peerid):
-    print self.kaishi.getPeerNickname(peerid) + ' has dropped from the network.'
+    print peerid + ' has dropped from the network.'
   #==============================================================================
 
   def havePostWithGUID(self, guid):
@@ -271,12 +270,26 @@ class P2PChan(object):
     conn.close()
     return False
 
+  def terminate(self, dummy=None):
+    print 'Goodbye.'
+    self.kaishi.gracefulExit()
+
 if __name__=='__main__':
   conn = sqlite3.connect(localFile('posts.db'))
   initializeDB(conn)
 
   p2pchan = P2PChan()
-  p2pchan.kaishi.debug = True
+  p2pchan.kaishi.debug = False
+
+  try:
+    if os.name == "nt":
+      import win32api
+      win32api.SetConsoleCtrlHandler(p2pchan.terminate, True)
+    else:
+      import signal
+      signal.signal(signal.SIGTERM, p2pchan.terminate)
+  except:
+    pass
 
   root = resource.Resource()
   root.putChild("", P2PChanWeb())
@@ -284,6 +297,7 @@ if __name__=='__main__':
   root.putChild("css", static.File(localFile('css')))
   site = server.Site(root)
   reactor.listenTCP(8080, site)
+
   reactor.run()
 
   

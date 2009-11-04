@@ -46,6 +46,12 @@ def formatDate(t=None):
 def formatTimestamp(t):
   return formatDate(datetime.datetime.fromtimestamp(int(t)))
 
+def logTimestamp():
+  return formatDate(datetime.datetime.now())
+
+def logMessage(message):
+    print '[' + logTimestamp() + '] ' + message
+    
 def timeTaken(time_start, time_finish):
   return str(round(time_finish - time_start, 2))
 
@@ -145,7 +151,7 @@ def renderPage(text, p2pchan, replyto=False):
     <input type="submit" value="Hide Checked Post" class="managebutton">
     </td></tr></table>
     <div class="footer" style="clear: both;">
-      - <a href="http://tj9991.github.com/p2pchan/">p2pchan</a> -
+      - <a href="http://p2pchan.info">p2pchan</a> -
     </div>
 </body>
 </html>""")
@@ -176,7 +182,7 @@ def renderManagePage(text):
     <br clear="left">
     <hr width="90%" size="1">
     <div class="footer" style="clear: both;">
-      - <a href="http://tj9991.github.com/p2pchan/">p2pchan</a> -
+      - <a href="http://p2pchan.info">p2pchan</a> -
     </div>
 </body>
 </html>""")
@@ -192,7 +198,7 @@ def buildPost(post, conn, numreplies=-1):
   POST_THUMB = 7
   POST_FILE = 8
   POST_MESSAGE = 9
-  html = ""
+  html = onclick = ""
 
   c = conn.cursor()
   c.execute('select count(*) from hiddenposts where guid = \'' + post[POST_GUID] + '\'')
@@ -204,6 +210,9 @@ def buildPost(post, conn, numreplies=-1):
   message = re.compile(r'&gt;&gt;([0-9A-Za-z]{5})').sub('<a href="#' + r'\1' + '">&gt;&gt;' + r'\1' + '</a>', message)
   message = re.compile(r'^&gt;(.*)$', re.MULTILINE).sub(r'<span class="unkfunc">&gt;\1</span>', message)
   message = message.replace("\n", "<br>")
+
+  if numreplies == -1:
+    onclick = ' onclick="javascript:document.postform.message.value = document.postform.message.value + \'>>' + post[POST_GUID][0:5] + '\';return false;"'
 
   if post[POST_PARENT] == "" and post[POST_FILE] != "":
     html += '<a target="_blank" href="' + post[POST_FILE] + '"><img src="' + post[POST_THUMB] + '" width="90" height="90" alt="' + post[POST_GUID] + '" class="thumb"></a>'
@@ -232,7 +241,7 @@ def buildPost(post, conn, numreplies=-1):
   formatTimestamp(post[POST_TIMESTAMP]) + \
   '</label> ' + \
   '<span class="reflink">' + \
-  '<a href="#' + post[POST_GUID][0:5] + '">ID:' + post[POST_GUID][0:5] + '</a> ' + \
+  '<a href="#' + post[POST_GUID][0:5] + '">ID:</a><a href="#' + post[POST_GUID][0:5] + '"' + onclick + '>' + post[POST_GUID][0:5] + '</a> ' + \
   '</span>'
   if post[POST_PARENT] == '':
     html += ' [<a href="/manage?getthread=' + post[POST_GUID] + '" title="Refresh thread (find missed replies)">Refresh</a>]'

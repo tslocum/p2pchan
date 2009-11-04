@@ -58,7 +58,7 @@ def timeTaken(time_start, time_finish):
 def newGUID():
   return str(uuid.uuid1())
 
-def renderPage(text, p2pchan, replyto=False):
+def renderPage(text, p2pchan, stylesheet, replyto=False):
   reshtml = ''
   parenthtml = '<input type="hidden" name="parent" value="">'
   if replyto:
@@ -71,8 +71,7 @@ def renderPage(text, p2pchan, replyto=False):
     P2PChan
   </title>
   <link rel="stylesheet" type="text/css" href="/css/global.css">
-  <link rel="stylesheet" type="text/css" href="/css/futaba.css" title="Futaba">
-  <link rel="alternate stylesheet" type="text/css" href="/css/burichan.css" title="Burichan">
+  <link rel="stylesheet" type="text/css" href="/css/""" + stylesheet + """.css" title=\"""" + stylesheet + """\">
   <meta http-equiv="content-type" content="text/html;charset=UTF-8">
   <meta http-equiv="pragma" content="no-cache">
   <meta http-equiv="expires" content="-1">
@@ -156,7 +155,7 @@ def renderPage(text, p2pchan, replyto=False):
 </body>
 </html>""")
 
-def renderManagePage(text):
+def renderManagePage(text, stylesheet):
   return str("""<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
@@ -164,8 +163,7 @@ def renderManagePage(text):
     P2PChan
   </title>
   <link rel="stylesheet" type="text/css" href="/css/global.css">
-  <link rel="stylesheet" type="text/css" href="/css/futaba.css" title="Futaba">
-  <link rel="alternate stylesheet" type="text/css" href="/css/burichan.css" title="Burichan">
+  <link rel="stylesheet" type="text/css" href="/css/""" + stylesheet + """.css" title=\"""" + stylesheet + """\">
   <meta http-equiv="content-type" content="text/html;charset=UTF-8">
   <meta http-equiv="pragma" content="no-cache">
   <meta http-equiv="expires" content="-1">

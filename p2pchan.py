@@ -1,25 +1,28 @@
 import sys
 import os
 import sqlite3
+import ConfigParser
 
 from funcs import *
 from kaishi import kaishi
 
 class P2PChan(object):
-  def __init__(self):
+  def __init__(self, kaishi_port):
     self.kaishi = kaishi()
+    self.kaishi.port = kaishi_port
+    self.kaishi.peerid = self.kaishi.host + ':' + str(kaishi_port)
     self.kaishi.provider = 'http://p2p.paq.cc/provider.php' # kaishi chat provider
     self.kaishi.handleIncomingData = self.handleIncomingData
     self.kaishi.handleAddedPeer = self.handleAddedPeer
     self.kaishi.handlePeerNickname = self.handlePeerNickname
     self.kaishi.handleDroppedPeer = self.handleDroppedPeer
-    
-    if len(sys.argv) > 1: # peerid supplied by command line
-      self.host, self.port = self.kaishi.peerIDToTuple(sys.argv[1])
-      self.port = int(self.port)
-      self.kaishi.peers = [self.host + ':' + str(self.port)]
 
-    self.kaishi.start()
+    try:
+      self.kaishi.start()
+    except:
+      logMessage("FATAL ERROR: Unable to initialize the network on port " + str(kaishi_port) + ".  Is another copy of P2PChan running?")
+      raw_input('')
+      sys.exit()
     
   #==============================================================================
   # kaishi hooks
@@ -89,10 +92,42 @@ class P2PChan(object):
 
 if __name__=='__main__':
   logMessage('Initializing...')
+
+  config = ConfigParser.RawConfigParser()
+  config.read(localFile('p2pchan.ini'))
+
+  kaishi_port = 44545
+  web_port = 8080
+  stylesheet = 'futaba'
+  
+  try:
+    kaishi_port = config.get("network settings", "kaishi port")
+  except:
+    pass
+  try:
+    web_port = config.get("network settings", "web port")
+  except:
+    pass
+  try:
+    stylesheet = config.get("page layout", "stylesheet")
+  except:
+    pass
+
+  config = ConfigParser.ConfigParser()
+  config.add_section('network settings')
+  config.set('network settings', 'kaishi port', kaishi_port)
+  config.set('network settings', 'web port', web_port)
+  config.add_section('page layout')
+  config.set('page layout', 'stylesheet', stylesheet)
+
+  f = open(localFile('p2pchan.ini'), 'w')
+  config.write(f)
+  f.close()
+  
   conn = sqlite3.connect(localFile('posts.db'))
   initializeDB(conn)
 
-  p2pchan = P2PChan()
+  p2pchan = P2PChan(int(kaishi_port))
   p2pchan.kaishi.debug = False
 
   try:
@@ -106,7 +141,7 @@ if __name__=='__main__':
     pass
 
   logMessage('Now available on the P2PChan network.')
-  logMessage('Please ensure UDP port 44545 is open.')
+  logMessage('Please ensure UDP port ' + str(kaishi_port) + ' is open.')
 
   if not os.path.isfile(localFile('nodemode')):
     from twisted.web import static, server, resource
@@ -114,14 +149,21 @@ if __name__=='__main__':
     from p2pweb import P2PChanWeb
 
     logMessage('There are currently ' + str(len(p2pchan.kaishi.peers)) + ' other users online.')
-    logMessage('Visit http://127.0.0.1:8080 to begin.')
+    logMessage('Visit http://127.0.0.1:' + str(web_port) + ' to begin.')
     
     root = resource.Resource()
-    root.putChild("", P2PChanWeb(p2pchan))
-    root.putChild("manage", P2PChanWeb(p2pchan))
+    root.putChild("", P2PChanWeb(p2pchan, stylesheet))
+    root.putChild("manage", P2PChanWeb(p2pchan, stylesheet))
     root.putChild("css", static.File(localFile('css')))
     site = server.Site(root)
-    reactor.listenTCP(8080, site)
+
+    try:
+      reactor.listenTCP(int(web_port), site)
+    except:
+      logMessage("FATAL ERROR: Unable to bind the web server to port " + str(web_port) + ".  Is it already in use?")
+      raw_input('')
+      sys.exit()
+    
     reactor.run()
   else:
     print '----------------------------------------'
@@ -134,6 +176,3 @@ if __name__=='__main__':
         raw_input('')
     except:
       pass
-  
-
-  

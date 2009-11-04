@@ -16,8 +16,9 @@ class P2PChanWeb(resource.Resource):
   isLeaf = True
   conn = sqlite3.connect(localFile('posts.db'))
   
-  def __init__(self, p2pchan):
+  def __init__(self, p2pchan, stylesheet):
     self.p2pchan = p2pchan
+    self.stylesheet = stylesheet
     
   def render_GET(self, request):
     if getRequestPath(request).startswith('/manage'):
@@ -109,7 +110,7 @@ class P2PChanWeb(resource.Resource):
                   
               text += replies + '<br clear="left"><hr>'
         
-    return renderPage(text, self.p2pchan, replyto)
+    return renderPage(text, self.p2pchan, self.stylesheet, replyto)
 
   def renderManage(self, request):
     replyto = False
@@ -202,9 +203,9 @@ class P2PChanWeb(resource.Resource):
       </legend>
       <p>To fetch some of the latest posts so you don't have a blank board, click "Fetch Threads" to the left.</p>
       <p>If you can not properly connect to any peers, or are connected but don't receive any posts from them, your computer or router may be blocking P2PChan's traffic. Try opening port 44545 on your router, or disabling your local firewall for P2PChan's process.</p>
-      <p>Use > to quote some text: <span class="unkfunc">&gt;you, sir, are and idiot :)</span></p>
-      <p>Use >> to reference another post in the same thread: <a href="#1a179">&gt;&gt;1a179</a></p>
-      <p>Use >>> to reference another thread: <a href="/?res=b02de651-c923-11de-b7eb-001d72ed9aa8">&gt;&gt;&gt;&shy;b02de651-c923-11de-b7eb-001d72ed9aa8</a></p>
+      <p>Use &gt; to quote some text: <span class="unkfunc">&gt;you, sir, are and idiot :)</span></p>
+      <p>Use &gt;&gt; to reference another post in the same thread: <a href="#1a179">&gt;&gt;1a179</a></p>
+      <p>Use &gt;&gt;&gt; to reference another thread: <a href="/?res=b02de651-c923-11de-b7eb-001d72ed9aa8">&gt;&gt;&gt;&shy;b02de651-c923-11de-b7eb-001d72ed9aa8</a></p>
       </fieldset>
       </td></tr></table>"""
-    return renderManagePage(text)
+    return renderManagePage(text, self.stylesheet)

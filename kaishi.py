@@ -210,10 +210,13 @@ class kaishi(object):
     thread.start_new_thread(self.pingAllPeers, ())
 
   def pingProvider(self):
-    time.sleep(60)
-    if self.provider != '':
-      urllib.urlopen(self.provider).read()
-      thread.start_new_thread(self.pingProvider, ())
+    while 1:
+      if self.provider != '':
+        try:
+          urllib.urlopen(self.provider).read()
+        except:
+          pass
+      time.sleep(60)
     
   def makePeerList(self):
     peers = {}

@@ -247,8 +247,6 @@ class kaishi(object):
       
   def gracefulExit(self):
     self.sendDropNotice()
-    self.socket.close()
-    sys.exit()
 
   @staticmethod
   def peerIDToTuple(peerid):

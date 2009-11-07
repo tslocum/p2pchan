@@ -58,12 +58,53 @@ def timeTaken(time_start, time_finish):
 def newGUID():
   return str(uuid.uuid1())
 
-def renderPage(text, p2pchan, stylesheet, replyto=False):
-  reshtml = ''
+def pageNavigator(page, numpages):
+  page_navigator = "<td>"
+  if page == 0:
+    page_navigator += "Previous"
+  else:
+    previous = str(int(page) - 1)
+    if previous == "0":
+      previous = ""
+    else:
+      previous = '<input type="hidden" name="ind" value="' + previous + '">'
+    page_navigator += '<form method="get" action="/">' + previous + '<input value="Previous" type="submit"></form>'
+
+  page_navigator += "</td><td>"
+
+  for i in xrange(int(numpages)):
+    if i == int(page):
+      page_navigator += "[" + str(i) + "] "
+    else:
+      if i == 0:
+        page_navigator += '[<a href="/">' + str(i) + '</a>] '
+      else:
+        page_navigator += '[<a href="/?ind=' + str(i) + '">' + str(i) + '</a>] '
+        
+  page_navigator += "</td><td>"
+
+  nextpage = (int(page) + 1)
+  if nextpage == int(numpages):
+    page_navigator += "Next</td>"
+  else:
+    page_navigator += '<form method="get" action="/"><input type="hidden" name="ind" value="' + str(nextpage) + '"><input value="Next" type="submit"></form></td>'
+
+  return """<table border="1">
+      <tbody>
+        <tr>
+          """ + page_navigator + """
+        </tr>
+      </tbody>
+    </table>"""
+
+def renderPage(text, p2pchan, stylesheet, replyto=False, currentpage=0, numpages=0,):
+  reshtml = navhtml = ''
   parenthtml = '<input type="hidden" name="parent" value="">'
   if replyto:
     reshtml = '&#91;<a href="/">Return</a>&#93;<div class="replymode">Posting mode: Reply</div>'
     parenthtml = '<input type="hidden" name="parent" value="' + replyto + '">'
+  else:
+    navhtml = pageNavigator(currentpage, numpages)
   return str("""<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
@@ -150,6 +191,8 @@ def renderPage(text, p2pchan, stylesheet, replyto=False):
     <input type="submit" name="refresh" value="Refresh Checked Thread" class="managebutton"> 
     <input type="submit" name="hide" value="Hide Checked Post" class="managebutton">
     </td></tr></table>
+    </form>
+    """ + navhtml + """
     <div class="footer" style="clear: both;">
       - <a href="http://p2pchan.info">p2pchan</a> -
     </div>

@@ -1,3 +1,4 @@
+import math
 import zlib
 import base64
 import thread
@@ -34,6 +35,7 @@ class P2PChanWeb(resource.Resource):
     
   def renderNormal(self, request):
     replyto = False
+    page = numpages = 0
     c = self.conn.cursor()
     c2 = self.conn.cursor()
     c3 = self.conn.cursor()
@@ -91,7 +93,14 @@ class P2PChanWeb(resource.Resource):
         for post in c:
           text += buildPost(post, self.conn, -1)
       else:
-        c.execute('select * from posts where parent = \'\' order by bumped desc')
+        c.execute('select count(*) from posts where parent = \'\'')
+        for row in c:
+          numpages = int(math.ceil(float(int(row[0])) / float(int(self.p2pchan.postsperpage))))
+          
+        if 'ind' in request.args:
+          page = request.args['ind'][0]
+          
+        c.execute('select * from posts where parent = \'\' order by bumped desc limit ' + str(self.p2pchan.postsperpage) + ' offset ' + str(int(self.p2pchan.postsperpage) * int(page)))
         for post in c:
           c2.execute('select count(*) from hiddenposts where guid = \'' + post[0] + '\'')
           for row in c2:
@@ -110,7 +119,7 @@ class P2PChanWeb(resource.Resource):
                   
               text += replies + '<br clear="left"><hr>'
         
-    return renderPage(text, self.p2pchan, self.stylesheet, replyto)
+    return renderPage(text, self.p2pchan, self.stylesheet, replyto, page, numpages)
 
   def renderManage(self, request):
     replyto = False

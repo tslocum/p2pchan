@@ -7,7 +7,7 @@ from funcs import *
 from kaishi import kaishi
 
 class P2PChan(object):
-  def __init__(self, kaishi_port, providers):
+  def __init__(self, kaishi_port, providers, postsperpage):
     self.kaishi = kaishi()
     self.kaishi.port = kaishi_port
     self.kaishi.peerid = self.kaishi.host + ':' + str(kaishi_port)
@@ -16,6 +16,8 @@ class P2PChan(object):
     self.kaishi.handleAddedPeer = self.handleAddedPeer
     self.kaishi.handlePeerNickname = self.handlePeerNickname
     self.kaishi.handleDroppedPeer = self.handleDroppedPeer
+
+    self.postsperpage = postsperpage
 
     try:
       self.kaishi.start()
@@ -100,6 +102,7 @@ if __name__=='__main__':
   kaishi_port = 44545
   web_port = 8080
   stylesheet = 'futaba'
+  postsperpage = 10
   providers = []
   
   try:
@@ -119,6 +122,10 @@ if __name__=='__main__':
     stylesheet = config.get("p2pchan", "stylesheet")
   except:
     pass
+  try:
+    postsperpage = config.get("p2pchan", "posts per page")
+  except:
+    pass
   
   i = 0
   while 1:
@@ -135,6 +142,7 @@ if __name__=='__main__':
   config.set('p2pchan', 'kaishi port', kaishi_port)
   config.set('p2pchan', 'web port', web_port)
   config.set('p2pchan', 'stylesheet', stylesheet)
+  config.set('p2pchan', 'posts per page', postsperpage)
   i = 0
   for provider in providers:
     config.set('p2pchan', 'provider' + str(i), provider)
@@ -149,7 +157,7 @@ if __name__=='__main__':
   conn = sqlite3.connect(localFile('posts.db'))
   initializeDB(conn)
 
-  p2pchan = P2PChan(int(kaishi_port), providers)
+  p2pchan = P2PChan(int(kaishi_port), providers, postsperpage)
   p2pchan.kaishi.debug = debug
 
   try:

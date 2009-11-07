@@ -185,6 +185,16 @@ def renderManagePage(text, stylesheet):
 </body>
 </html>""")
 
+def formatMessage(message):
+  message = re.compile(r'&gt;&gt;&gt;([0-9A-Za-z]{8}-[0-9A-Za-z]{4}-[0-9A-Za-z]{4}-[0-9A-Za-z]{4}-[0-9A-Za-z]{12})').sub('<a href="/?res=' + r'\1' + '">&gt;&gt;&gt;&shy;' + r'\1' + '</a>', message)
+  message = re.compile(r'&gt;&gt;([0-9A-Za-z]{5})').sub('<a href="#' + r'\1' + '">&gt;&gt;' + r'\1' + '</a>', message)
+  message = re.compile(r'\*\*([^\s](|.*?[^\s])\**)\*\*').sub('<b>' + r'\1' + '</b>', message)
+  message = re.compile(r'//([^\s](|.*?[^\s])/*)//').sub('<i>' + r'\1' + '</i>', message)
+  message = re.compile(r'``([^\s](|.*?[^\s])`*)``').sub('<code>' + r'\1' + '</code>', message)
+  message = re.compile(r'^&gt;(.*)$', re.MULTILINE).sub(r'<span class="unkfunc">&gt;\1</span>', message)
+
+  return message.replace("\n", "<br>")
+
 def buildPost(post, conn, numreplies=-1):
   POST_GUID = 0
   POST_PARENT = 1
@@ -197,17 +207,13 @@ def buildPost(post, conn, numreplies=-1):
   POST_FILE = 8
   POST_MESSAGE = 9
   html = onclick = ""
+  message = formatMessage(post[POST_MESSAGE])
 
   c = conn.cursor()
   c.execute('select count(*) from hiddenposts where guid = \'' + post[POST_GUID] + '\'')
   for row in c:
     if row[0] > 0:
       return ""
-
-  message = re.compile(r'&gt;&gt;&gt;([0-9A-Za-z]{8}-[0-9A-Za-z]{4}-[0-9A-Za-z]{4}-[0-9A-Za-z]{4}-[0-9A-Za-z]{12})').sub('<a href="/?res=' + r'\1' + '">&gt;&gt;&gt;&shy;' + r'\1' + '</a>', post[POST_MESSAGE])
-  message = re.compile(r'&gt;&gt;([0-9A-Za-z]{5})').sub('<a href="#' + r'\1' + '">&gt;&gt;' + r'\1' + '</a>', message)
-  message = re.compile(r'^&gt;(.*)$', re.MULTILINE).sub(r'<span class="unkfunc">&gt;\1</span>', message)
-  message = message.replace("\n", "<br>")
 
   if numreplies == -1:
     onclick = ' onclick="javascript:document.postform.message.value = document.postform.message.value + \'>>' + post[POST_GUID][0:5] + '\';return false;"'

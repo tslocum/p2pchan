@@ -205,7 +205,8 @@ class P2PChanWeb(resource.Resource):
       <p>If you can not properly connect to any peers, or are connected but don't receive any posts from them, your computer or router may be blocking P2PChan's traffic. Try opening port 44545 on your router, or disabling your local firewall for P2PChan's process.</p>
       <p>Use &gt; to quote some text: <span class="unkfunc">&gt;you, sir, are and idiot :)</span></p>
       <p>Use &gt;&gt; to reference another post in the same thread: <a href="#1a179">&gt;&gt;1a179</a></p>
-      <p>Use &gt;&gt;&gt; to reference another thread: <a href="/?res=b02de651-c923-11de-b7eb-001d72ed9aa8">&gt;&gt;&gt;&shy;b02de651-c923-11de-b7eb-001d72ed9aa8</a></p>
+      <p>Use &gt;&gt;&gt; to reference another thread: <a href="/?res=b02de651-c923-11de-b7eb-001d72ed9aa8">&gt;&gt;&gt;&shy;b02de651-c923-11de-b7eb-001d72ed9aa8</a>
+      <p>Formatting options: <b>**bold text**</b> <i>//italic text//</i> <code>``monospaced text``</code></p>
       </fieldset>
       </td></tr></table>"""
     return renderManagePage(text, self.stylesheet)

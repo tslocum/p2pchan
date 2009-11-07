@@ -121,7 +121,7 @@ def renderPage(text, p2pchan, stylesheet, replyto=False, currentpage=0, numpages
     <div class="adminbar">
       [<a href="/manage">Manage</a>]
     </div>
-    <div class="logo">
+    <div class="logo" onclick="top.location.href='/';">
       P2PChan
     </div>
     <hr width="90%" size="1">""" + reshtml + """

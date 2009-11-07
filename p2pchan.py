@@ -7,11 +7,11 @@ from funcs import *
 from kaishi import kaishi
 
 class P2PChan(object):
-  def __init__(self, kaishi_port):
+  def __init__(self, kaishi_port, providers):
     self.kaishi = kaishi()
     self.kaishi.port = kaishi_port
     self.kaishi.peerid = self.kaishi.host + ':' + str(kaishi_port)
-    self.kaishi.provider = 'http://p2p.paq.cc/provider.php?port=' + str(kaishi_port) # kaishi chat provider
+    self.kaishi.providers = providers
     self.kaishi.handleIncomingData = self.handleIncomingData
     self.kaishi.handleAddedPeer = self.handleAddedPeer
     self.kaishi.handlePeerNickname = self.handlePeerNickname
@@ -96,29 +96,51 @@ if __name__=='__main__':
   config = ConfigParser.RawConfigParser()
   config.read(localFile('p2pchan.ini'))
 
+  debug = False
   kaishi_port = 44545
   web_port = 8080
   stylesheet = 'futaba'
+  providers = []
   
   try:
-    kaishi_port = config.get("network settings", "kaishi port")
+    if config.get("p2pchan", "debug").lower() == 'true':
+      debug = True
   except:
     pass
   try:
-    web_port = config.get("network settings", "web port")
+    kaishi_port = config.get("p2pchan", "kaishi port")
   except:
     pass
   try:
-    stylesheet = config.get("page layout", "stylesheet")
+    web_port = config.get("p2pchan", "web port")
   except:
     pass
+  try:
+    stylesheet = config.get("p2pchan", "stylesheet")
+  except:
+    pass
+  
+  i = 0
+  while 1:
+    try:
+      providers.append(config.get("p2pchan", "provider" + str(i)))
+      i += 1
+    except:
+      break
+  if 'http://p2p.paq.cc/provider.php' not in providers:
+    providers.append('http://p2p.paq.cc/provider.php')
 
   config = ConfigParser.ConfigParser()
-  config.add_section('network settings')
-  config.set('network settings', 'kaishi port', kaishi_port)
-  config.set('network settings', 'web port', web_port)
-  config.add_section('page layout')
-  config.set('page layout', 'stylesheet', stylesheet)
+  config.add_section('p2pchan')
+  config.set('p2pchan', 'kaishi port', kaishi_port)
+  config.set('p2pchan', 'web port', web_port)
+  config.set('p2pchan', 'stylesheet', stylesheet)
+  i = 0
+  for provider in providers:
+    config.set('p2pchan', 'provider' + str(i), provider)
+    i += 1
+  if debug:
+    config.set('p2pchan', 'debug', 'true')
 
   f = open(localFile('p2pchan.ini'), 'w')
   config.write(f)
@@ -127,8 +149,8 @@ if __name__=='__main__':
   conn = sqlite3.connect(localFile('posts.db'))
   initializeDB(conn)
 
-  p2pchan = P2PChan(int(kaishi_port))
-  p2pchan.kaishi.debug = False
+  p2pchan = P2PChan(int(kaishi_port), providers)
+  p2pchan.kaishi.debug = debug
 
   try:
     if os.name == "nt":

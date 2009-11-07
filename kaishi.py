@@ -31,7 +31,7 @@ class kaishi(object):
     self.pings = {}
     self.peers = []
     self.uidlist = []
-    self.provider = ''
+    self.providers = []
     self.host = urllib.urlopen('http://ip.paq.cc/').read()
     self.port = 44545
     self.peerid = self.host + ':' + str(self.port)
@@ -192,7 +192,7 @@ class kaishi(object):
       pass
     
     self.nicks.update({peerid: nickname})
-    self.debugMessage('Set nickname for ' + peerid + ' to ' + nickname)
+    #self.debugMessage('Set nickname for ' + peerid + ' to ' + nickname)
 
   def sendDropNotice(self):
     self.sendData('DROP', 'DROP')
@@ -211,9 +211,9 @@ class kaishi(object):
 
   def pingProvider(self):
     while 1:
-      if self.provider != '':
+      for provider in self.providers:
         try:
-          urllib.urlopen(self.provider).read()
+          urllib.urlopen(provider + '?port=' + str(self.port)).read()
         except:
           pass
       time.sleep(60)
@@ -225,10 +225,10 @@ class kaishi(object):
     return pickle.dumps(peers)
 
   def fetchPeersFromProvider(self):
+    added_nodes = 0
     self.debugMessage('Fetching peers from provider')
-    if self.provider != '':
-      added_nodes = 0
-      known_nodes = urllib.urlopen(self.provider).read()
+    for provider in self.providers:
+      known_nodes = urllib.urlopen(provider + '?port=' + str(self.port)).read()
       if known_nodes.startswith('?'):
         if len(known_nodes) > 1:
           known_nodes = known_nodes[1:].split('\n')
@@ -236,13 +236,11 @@ class kaishi(object):
             if known_node != '':
               added_nodes += 1
               self.addPeer(known_node)
-              self.debugMessage('Added ' + known_node + ' from provider')
         else:
-          self.debugMessage('Provider returned zero peers.  You are all alone...')
+          self.debugMessage(provider + ' returned zero peers.')
       else:
-        self.debugMessage('Provider returned an invalid result (first character was not "?")')
-    else:
-      self.debugMessage('No provider is currently set')
+        self.debugMessage(provider + ' returned an invalid result (first character was not "?")')
+    self.debugMessage('Received ' + str(added_nodes) + ' peers from providers')
 
   def debugMessage(self, message):
     if self.debug:

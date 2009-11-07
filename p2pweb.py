@@ -123,17 +123,20 @@ class P2PChanWeb(resource.Resource):
     elif 'fetchthreads' in request.args:
       self.p2pchan.kaishi.sendData('THREADS', "")
       text += 'Sent thread fetch request.'
-    elif 'hide' in request.args:
+    elif 'hide' in request.args and 'post' in request.args:
       if not os.path.isfile(localFile('servermode')):
         c = self.conn.cursor()
-        c.execute('select count(*) from hiddenposts where guid = \'' + request.args['hide'][0] + '\'')
+        c.execute('select count(*) from hiddenposts where guid = \'' + request.args['post'][0] + '\'')
         for row in c:
           if row[0] == 0:
-            c.execute('insert into hiddenposts values (\'' + request.args['hide'][0] + '\')')
+            c.execute('insert into hiddenposts values (\'' + request.args['post'][0] + '\')')
             self.conn.commit()
             text += 'Post hidden.'
           else:
             text += 'That post has already been hidden.'
+    elif 'refresh' in request.args and 'post' in request.args:
+      self.p2pchan.kaishi.sendData('THREAD', request.args['post'][0])
+      text += 'Sent thread request. You will be redirected to the thread in a few seconds.<meta http-equiv="refresh" content="5;URL=/?res=' + request.args['post'][0] + '">'
     elif 'unhide' in request.args:
       c = self.conn.cursor()
       c.execute('delete from hiddenposts where guid = \'' + request.args['unhide'][0] + '\'')

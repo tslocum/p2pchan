@@ -147,7 +147,8 @@ def renderPage(text, p2pchan, stylesheet, replyto=False):
     <form name="delform" action="/manage" method="get">
     """ + text + """
     <table align="right"><tr><td nowrap align="right">
-    <input type="submit" value="Hide Checked Post" class="managebutton">
+    <input type="submit" name="refresh" value="Refresh Checked Thread" class="managebutton"> 
+    <input type="submit" name="hide" value="Hide Checked Post" class="managebutton">
     </td></tr></table>
     <div class="footer" style="clear: both;">
       - <a href="http://p2pchan.info">p2pchan</a> -
@@ -229,7 +230,7 @@ def buildPost(post, conn, numreplies=-1):
     </td>""" + \
     '<td class="reply" id="' + post[POST_GUID] + '">'
   html += '<a name="' + post[POST_GUID][0:5] + '"></a>' + \
-  '<label><input type="checkbox" name="hide" value="' + post[POST_GUID] + '"> '
+  '<label><input type="checkbox" name="post" value="' + post[POST_GUID] + '"> '
   if post[POST_SUBJECT] != '':
     html += '<span class="filetitle">' + post[POST_SUBJECT] + '</span> '
   html += '<span class="postername">'
@@ -248,7 +249,6 @@ def buildPost(post, conn, numreplies=-1):
   '<a href="#' + post[POST_GUID][0:5] + '">ID:</a><a href="#' + post[POST_GUID][0:5] + '"' + onclick + '>' + post[POST_GUID][0:5] + '</a> ' + \
   '</span>'
   if post[POST_PARENT] == '':
-    html += ' [<a href="/manage?getthread=' + post[POST_GUID] + '" title="Refresh thread (find missed replies)">Refresh</a>]'
     if numreplies > -1:
       html += ' [<a href="/?res=' + post[POST_GUID] + '">Reply</a>]'
   elif post[POST_FILE] != '':

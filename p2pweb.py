@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import math
 import zlib
 import base64
@@ -73,7 +74,7 @@ class P2PChanWeb(resource.Resource):
               hostresponse[1],
               hostresponse[0],
               request.args['message'][0]]
-      post = decodePostData(encodePostData(post))
+      post = decodePostData(toEntity(encodePostData(post)))
       c.execute("insert into posts values ('" + "', '".join(post) + "')")
       if post[1] != "" and post[5].lower() != 'sage':
         c.execute("update posts set bumped = '" + post[2] + "' where guid = '" + post[1] + "'")

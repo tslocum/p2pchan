@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sys
 import os
 import time
@@ -160,7 +161,7 @@ def renderPage(text, p2pchan, stylesheet, replyto=False, currentpage=0, numpages
               Message
             </td>
             <td>
-              <textarea name="message" cols="48" rows="4" accesskey="m"></textarea>
+              <textarea name="message" id="mescont" cols="48" rows="4" accesskey="m"></textarea>
             </td>
           </tr>
           <tr>
@@ -186,7 +187,7 @@ def renderPage(text, p2pchan, stylesheet, replyto=False, currentpage=0, numpages
     </div>
     <hr>
     <form name="delform" action="/manage" method="get">
-    """ + text + """
+    """ + text.encode('utf8', 'replace') + """
     <table align="right"><tr><td nowrap align="right">
     <input type="submit" name="refresh" value="Refresh Checked Thread" class="managebutton"> 
     <input type="submit" name="hide" value="Hide Checked Post" class="managebutton">
@@ -236,7 +237,6 @@ def formatMessage(message):
   message = re.compile(r'//([^\s](|.*?[^\s])/*)//').sub('<i>' + r'\1' + '</i>', message)
   message = re.compile(r'``([^\s](|.*?[^\s])`*)``').sub('<code>' + r'\1' + '</code>', message)
   message = re.compile(r'^&gt;(.*)$', re.MULTILINE).sub(r'<span class="unkfunc">&gt;\1</span>', message)
-
   return message.replace("\n", "<br>")
 
 def buildPost(post, conn, numreplies=-1):
@@ -309,6 +309,21 @@ def buildPost(post, conn, numreplies=-1):
     '</tbody>' + \
     '</table>'
   return html
+
+def toEntity(data):
+  res = ''
+  i = 0
+  while i < len(data):
+    if ord(data[i]) > 127:
+      if i+1 < len(data):
+        res += '&#' + str(((ord(data[i]) & 0x1F) << 6) + (ord(data[i+1]) & 0x7F)) + ';'
+        i += 1
+      else:
+        res += '?'
+    else:
+      res += data[i]
+    i += 1
+  return res
 
 def encodePostData(post):
   return chr(27).join(post)

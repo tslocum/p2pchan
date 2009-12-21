@@ -21,6 +21,18 @@ import pickle
 import thread
 import socket
 
+def toEntity(data):
+  res = ''
+  i = 0
+  while i < len(data):
+    if ord(data[i]) > 127:
+      res += '&#' + str(((ord(data[i]) & 0x1F) << 6) + (ord(data[i+1]) & 0x7F)) + ';'
+      i += 1
+    else:
+      res += data[i]
+    i += 1
+  return res
+
 class kaishi(object):
   def __init__(self):
     # Set all defaults
@@ -73,7 +85,7 @@ class kaishi(object):
 
     data = ':'.join([str(self.protocol_version), identifier, bounce, uid, self.encodeTransitSafePeerID(args['origin']), message])
     data = zlib.compress(unicode(data), 9)
-    
+
     if args['to']:
       recipients = [args['to']]
     else:
@@ -89,29 +101,33 @@ class kaishi(object):
         if args['to']:
           return False
     return True
-    
+
   def receiveData(self):
     while 1:
       data = None
       try:
         data, address = self.socket.recvfrom(65536)
         data = zlib.decompress(data)
-        
+
         bouncer_peerid = address[0] + ':' + str(address[1]) # peerid of the last bounce
-        
         protocol_version, identifier, bounce, uid, origin, message = data.split(':', 5)
+#        print message
+        message = toEntity(message)
+#        print message
+        data = ':'.join([protocol_version, identifier, bounce, uid, origin, message])
+
         peerid = self.decodeTransitSafePeerID(origin) # peerid which sent the original message
       except socket.timeout:
         pass
       except:
         self.debugMessage('Failed to establish a connection.')
         pass
-      
+
       if data and uid not in self.uidlist:
         if peerid not in self.peers and identifier != 'JOIN' and identifier != 'DROP':
           self.addPeer(peerid)
           self.debugMessage('Adding ' + peerid + ' from outside message')
-          
+
         if identifier == 'JOIN': # a user requests that they join the network
           self.addPeer(peerid)
           self.setPeerNickname(peerid, message) # add the nick sent in the JOIN message
@@ -145,7 +161,7 @@ class kaishi(object):
       self.peers.append(peerid)
       if peer_nick != '':
         self.setPeerNickname(peerid, peer_nick)
-        
+
       result = self.sendData('JOIN', self.getPeerNickname(self.peerid)) # send our nickname in the message of JOIN
       self.debugMessage('Adding peer: ' + self.getPeerNickname(peerid))
       if result:
@@ -153,13 +169,13 @@ class kaishi(object):
       else:
         self.debugMessage('Could not connect to ' + self.getPeerNickname(peerid))
         self.dropPeer(peerid)
-        
+
     try:
       if result:
         self.handleAddedPeer(peerid)
     except:
       pass
-    
+
     return result
 
   def dropPeer(self, peerid):
@@ -245,7 +261,7 @@ class kaishi(object):
   def debugMessage(self, message):
     if self.debug:
       print "DEBUG:", message
-      
+
   def gracefulExit(self):
     self.sendDropNotice()
 

@@ -127,6 +127,19 @@ def renderPage(text, p2pchan, stylesheet, replyto=False, currentpage=0, numpages
     </div>
     <hr width="90%" size="1">""" + reshtml + """
     <div class="postarea">
+      <script type="text/javascript">
+        function toEntity()
+        {
+          var aa = document.getElementById('mescont').value;
+          var bb = '';
+          for(i=0; i<aa.length; i++)
+            if(aa.charCodeAt(i)>127)
+              bb += '&#' + aa.charCodeAt(i) + ';';
+            else
+              bb += aa.charAt(i);
+          document.getElementById('mescont').value = bb;
+        }
+        </script>
       <form name="postform" id="postform" action="/" method="post" enctype="multipart/form-data">
       """ + parenthtml + """
       <table class="postform">
@@ -153,7 +166,7 @@ def renderPage(text, p2pchan, stylesheet, replyto=False, currentpage=0, numpages
             </td>
             <td>
               <input type="text" name="subject" size="40" maxlength="75" accesskey="s">
-              <input type="submit" value="Submit" accesskey="z">
+              <input type="button" onclick="toEntity(); document.getElementById('postform').submit();" value="Submit" accesskey="z">
             </td>
           </tr>
           <tr>

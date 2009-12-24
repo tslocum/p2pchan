@@ -40,8 +40,11 @@ class P2PChan(object):
             c.execute("insert into posts values ('" + "', '".join(post) + "')")
             conn.commit()
             if post[1] != "" and post[5].lower() != 'sage':
-              c.execute("update posts set bumped = '" + str(timestamp()) + "' where guid = '" + post[1] + "'")
-              conn.commit()
+              c.execute('select * from posts where guid = \'' + post[1] + '\' limit 1')
+              for row in c:
+                if row[3] < post[3]:
+                  c.execute("update posts set bumped = '" + str(post[3]) + "' where guid = '" + post[1] + "'")
+                  conn.commit()
     elif identifier == 'THREAD':
       if self.havePostWithGUID(message):
         c = conn.cursor()
@@ -136,6 +139,8 @@ if __name__=='__main__':
       break
   if 'http://p2p.paq.cc/provider.php' not in providers:
     providers.append('http://p2p.paq.cc/provider.php')
+  if 'http://p2p2.paq.cc/provider.php' not in providers:
+    providers.append('http://p2p2.paq.cc/provider.php')
 
   config = ConfigParser.ConfigParser()
   config.add_section('p2pchan')

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sys
 import os
 import time
@@ -126,6 +127,19 @@ def renderPage(text, p2pchan, stylesheet, replyto=False, currentpage=0, numpages
     </div>
     <hr width="90%" size="1">""" + reshtml + """
     <div class="postarea">
+      <script type="text/javascript">
+        function toEntity()
+        {
+          var aa = document.getElementById('mescont').value;
+          var bb = '';
+          for(i=0; i<aa.length; i++)
+            if(aa.charCodeAt(i)>127)
+              bb += '&#' + aa.charCodeAt(i) + ';';
+            else
+              bb += aa.charAt(i);
+          document.getElementById('mescont').value = bb;
+        }
+        </script>
       <form name="postform" id="postform" action="/" method="post" enctype="multipart/form-data">
       """ + parenthtml + """
       <table class="postform">
@@ -152,7 +166,7 @@ def renderPage(text, p2pchan, stylesheet, replyto=False, currentpage=0, numpages
             </td>
             <td>
               <input type="text" name="subject" size="40" maxlength="75" accesskey="s">
-              <input type="submit" value="Submit" accesskey="z">
+              <input type="button" onclick="toEntity(); document.getElementById('postform').submit();" value="Submit" accesskey="z">
             </td>
           </tr>
           <tr>
@@ -160,7 +174,7 @@ def renderPage(text, p2pchan, stylesheet, replyto=False, currentpage=0, numpages
               Message
             </td>
             <td>
-              <textarea name="message" cols="48" rows="4" accesskey="m"></textarea>
+              <textarea name="message" id="mescont" cols="48" rows="4" accesskey="m"></textarea>
             </td>
           </tr>
           <tr>
@@ -186,7 +200,7 @@ def renderPage(text, p2pchan, stylesheet, replyto=False, currentpage=0, numpages
     </div>
     <hr>
     <form name="delform" action="/manage" method="get">
-    """ + text + """
+    """ + text.encode('utf8', 'replace') + """
     <table align="right"><tr><td nowrap align="right">
     <input type="submit" name="refresh" value="Refresh Checked Thread" class="managebutton"> 
     <input type="submit" name="hide" value="Hide Checked Post" class="managebutton">
@@ -236,7 +250,6 @@ def formatMessage(message):
   message = re.compile(r'//([^\s](|.*?[^\s])/*)//').sub('<i>' + r'\1' + '</i>', message)
   message = re.compile(r'``([^\s](|.*?[^\s])`*)``').sub('<code>' + r'\1' + '</code>', message)
   message = re.compile(r'^&gt;(.*)$', re.MULTILINE).sub(r'<span class="unkfunc">&gt;\1</span>', message)
-
   return message.replace("\n", "<br>")
 
 def buildPost(post, conn, numreplies=-1):
@@ -309,6 +322,21 @@ def buildPost(post, conn, numreplies=-1):
     '</tbody>' + \
     '</table>'
   return html
+
+def toEntity(data):
+  res = ''
+  i = 0
+  while i < len(data):
+    if ord(data[i]) > 127:
+      if i+1 < len(data):
+        res += '&#' + str(((ord(data[i]) & 0x1F) << 6) + (ord(data[i+1]) & 0x7F)) + ';'
+        i += 1
+      else:
+        res += '?'
+    else:
+      res += data[i]
+    i += 1
+  return res
 
 def encodePostData(post):
   return chr(27).join(post)

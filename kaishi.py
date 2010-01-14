@@ -21,17 +21,7 @@ import pickle
 import thread
 import socket
 
-def toEntity(data):
-  res = ''
-  i = 0
-  while i < len(data):
-    if ord(data[i]) > 127:
-      res += '&#' + str(((ord(data[i]) & 0x1F) << 6) + (ord(data[i+1]) & 0x7F)) + ';'
-      i += 1
-    else:
-      res += data[i]
-    i += 1
-  return res
+from funcs import toEntity
 
 class kaishi(object):
   def __init__(self):
@@ -111,9 +101,7 @@ class kaishi(object):
 
         bouncer_peerid = address[0] + ':' + str(address[1]) # peerid of the last bounce
         protocol_version, identifier, bounce, uid, origin, message = data.split(':', 5)
-#        print message
         message = toEntity(message)
-#        print message
         data = ':'.join([protocol_version, identifier, bounce, uid, origin, message])
 
         peerid = self.decodeTransitSafePeerID(origin) # peerid which sent the original message
@@ -187,7 +175,7 @@ class kaishi(object):
         self.handleDroppedPeer(peerid)
       except:
         pass
-        
+
   def getAllPeersExcept(self, exclude_peerid):
     peers = []
     for peerid in self.peers:
@@ -206,7 +194,7 @@ class kaishi(object):
       self.handlePeerNickname(peerid, nickname)
     except:
       pass
-    
+
     self.nicks.update({peerid: nickname})
     #self.debugMessage('Set nickname for ' + peerid + ' to ' + nickname)
 
@@ -233,11 +221,11 @@ class kaishi(object):
         except:
           pass
       time.sleep(60)
-    
+
   def makePeerList(self):
     peers = {}
     [peers.update({peerid: self.getPeerNickname(peerid)}) for peerid in self.peers]
-    
+
     return pickle.dumps(peers)
 
   def fetchPeersFromProvider(self):

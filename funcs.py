@@ -10,6 +10,26 @@ from StringIO import StringIO
 
 import ntplib
 
+def toEntity(data):
+  res = ''
+  i = 0
+  while i < len(data):
+    if ord(data[i]) < 0x80:
+      res += data[i]
+      i += 1
+    elif (ord(data[i]) & 0xE0 == 0xE0) and (i+2 < len(data)):
+      code = ((ord(data[i]) & 0xF) << 12) | ((ord(data[i+1]) & 0x3F) << 6) | (ord(data[i+2]) & 0x3F)
+      res += '&#' + str(code) + ';'
+      i += 3
+    elif (ord(data[i]) & 0xC0 == 0xC0) and (i+1 < len(data)):
+      code = ((ord(data[i]) & 0x1F) << 6) | (ord(data[i+1]) & 0x3F)
+      res += '&#' + str(code) + ';'
+      i += 2
+    else:
+      res += '?'
+      i += 1
+  return res
+
 def initializeDB(conn):
   c = conn.cursor()
   try:
@@ -52,7 +72,7 @@ def logTimestamp():
 
 def logMessage(message):
     print '[' + logTimestamp() + '] ' + message
-    
+
 def timeTaken(time_start, time_finish):
   return str(round(time_finish - time_start, 2))
 
@@ -81,7 +101,7 @@ def pageNavigator(page, numpages):
         page_navigator += '[<a href="/">' + str(i) + '</a>] '
       else:
         page_navigator += '[<a href="/?ind=' + str(i) + '">' + str(i) + '</a>] '
-        
+
   page_navigator += "</td><td>"
 
   nextpage = (int(page) + 1)
@@ -127,19 +147,6 @@ def renderPage(text, p2pchan, stylesheet, replyto=False, currentpage=0, numpages
     </div>
     <hr width="90%" size="1">""" + reshtml + """
     <div class="postarea">
-      <script type="text/javascript">
-        function toEntity()
-        {
-          var aa = document.getElementById('mescont').value;
-          var bb = '';
-          for(i=0; i<aa.length; i++)
-            if(aa.charCodeAt(i)>127)
-              bb += '&#' + aa.charCodeAt(i) + ';';
-            else
-              bb += aa.charAt(i);
-          document.getElementById('mescont').value = bb;
-        }
-        </script>
       <form name="postform" id="postform" action="/" method="post" enctype="multipart/form-data">
       """ + parenthtml + """
       <table class="postform">
@@ -166,7 +173,7 @@ def renderPage(text, p2pchan, stylesheet, replyto=False, currentpage=0, numpages
             </td>
             <td>
               <input type="text" name="subject" size="40" maxlength="75" accesskey="s">
-              <input type="button" onclick="toEntity(); document.getElementById('postform').submit();" value="Submit" accesskey="z">
+              <input type="submit" value="Submit" accesskey="z">
             </td>
           </tr>
           <tr>
@@ -246,10 +253,22 @@ def renderManagePage(text, stylesheet):
 def formatMessage(message):
   message = re.compile(r'&gt;&gt;&gt;([0-9A-Za-z]{8}-[0-9A-Za-z]{4}-[0-9A-Za-z]{4}-[0-9A-Za-z]{4}-[0-9A-Za-z]{12})').sub('<a href="/?res=' + r'\1' + '">&gt;&gt;&gt;&shy;' + r'\1' + '</a>', message)
   message = re.compile(r'&gt;&gt;([0-9A-Za-z]{5})').sub('<a href="#' + r'\1' + '">&gt;&gt;' + r'\1' + '</a>', message)
-  message = re.compile(r'\*\*([^\s](|.*?[^\s])\**)\*\*').sub('<b>' + r'\1' + '</b>', message)
-  message = re.compile(r'//([^\s](|.*?[^\s])/*)//').sub('<i>' + r'\1' + '</i>', message)
-  message = re.compile(r'``([^\s](|.*?[^\s])`*)``').sub('<code>' + r'\1' + '</code>', message)
+#  message = re.compile(r'//([^\s](|.*?[^\s])/*)//').sub('<i>' + r'\1' + '</i>', message)
+#  message = re.compile(r'``([^\s](|.*?[^\s])`*)``').sub('<code>' + r'\1' + '</code>', message)
   message = re.compile(r'^&gt;(.*)$', re.MULTILINE).sub(r'<span class="unkfunc">&gt;\1</span>', message)
+
+  message = re.compile(r'\*\*([^\s](|.*?[^\s])\**)\*\*').sub('<b>' + r'\1' + '</b>', message)
+  message = re.compile(r'__([^\s](|.*?[^\s])\**)__').sub('<b>' + r'\1' + '</b>', message)
+  message = re.compile(r'\[b\]([^\s](|.*?[^\s])\**)\[\/b\]').sub('<b>' + r'\1' + '</b>', message)
+
+  message = re.compile(r'\[i\]([^\s](|.*?[^\s])\**)\[\/i\]').sub('<i>' + r'\1' + '</i>', message)
+  message = re.compile(r'\*([^\s](|.*?[^\s])\**)\*').sub('<i>' + r'\1' + '</i>', message)
+
+  message = re.compile(r'\[s\]([^\s](|.*?[^\s])\**)\[\/s\]').sub('<s>' + r'\1' + '</s>', message)
+
+#TODO: [spoiler]спойлер[/spoiler], %%спойлер%% == спойлер
+#TODO: [code]быдлокод();[/code] == быдлокод();
+
   return message.replace("\n", "<br>")
 
 def buildPost(post, conn, numreplies=-1):
@@ -276,7 +295,7 @@ def buildPost(post, conn, numreplies=-1):
     onclick = ' onclick="javascript:document.postform.message.value = document.postform.message.value + \'>>' + post[POST_GUID][0:5] + '\';return false;"'
 
   if post[POST_PARENT] == "" and post[POST_FILE] != "":
-    html += '<a target="_blank" href="' + post[POST_FILE] + '"><img src="' + post[POST_THUMB] + '" width="90" height="90" alt="' + post[POST_GUID] + '" class="thumb"></a>'
+    html += '<a target="_blank" href="image/' + post[POST_GUID] + '"><img src="image/' + post[POST_GUID] + '" width="200" height="200" alt="' + post[POST_GUID] + '" class="thumb"></a>'
   else:
     html += """<table>
     <tbody>
@@ -309,7 +328,7 @@ def buildPost(post, conn, numreplies=-1):
       html += ' [<a href="/?res=' + post[POST_GUID] + '">Reply</a>]'
   elif post[POST_FILE] != '':
     html += '<br>' + \
-    '<a target="_blank" href="' + post[POST_FILE] + '"><img src="' + post[POST_THUMB] + '" width="90" height="90" alt="' + post[POST_GUID] + '" class="thumb"></a>'
+    '<a target="_blank" href="image/' + post[POST_GUID] + '"><img src="image/thumb/' + post[POST_GUID] + '" width="200" height="200" alt="' + post[POST_GUID] + '" class="thumb"></a>'
   html += '<blockquote>' + message + '</blockquote>'
   if numreplies > 5:
     html += '<span class="omittedposts">' + str(numreplies - 5) + ' post'
@@ -323,21 +342,6 @@ def buildPost(post, conn, numreplies=-1):
     '</table>'
   return html
 
-def toEntity(data):
-  res = ''
-  i = 0
-  while i < len(data):
-    if ord(data[i]) > 127:
-      if i+1 < len(data):
-        res += '&#' + str(((ord(data[i]) & 0x1F) << 6) + (ord(data[i+1]) & 0x7F)) + ';'
-        i += 1
-      else:
-        res += '?'
-    else:
-      res += data[i]
-    i += 1
-  return res
-
 def encodePostData(post):
   return chr(27).join(post)
 
@@ -347,7 +351,7 @@ def decodePostData(postdata):
 def parseImageHostResponse(response):
   if 'rsp' not in response or 'error_code' in response:
     return []
-  
+
   original_image = response[(response.find("<original_image>") + 16):response.find("</original_image>")]
   small_thumbnail = response[(response.find("<small_thumbnail>") + 17):response.find("</small_thumbnail>")]
   return [original_image, small_thumbnail]
